@@ -23,9 +23,9 @@ const Camera = () => {
   };
 
   return (
-    <div>
+    <div className="camera">
       <Webcam className="mirrored" audio={false} ref={webcamRef} screenshotFormat="image/jpeg" />
-      <button onClick={capture}>Capture and Send</button>
+      <button className="button" onClick={capture}>Take Photo</button>
     </div>
   );
 };
