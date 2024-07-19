@@ -1,31 +1,34 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const cors = require('cors');
+const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(bodyParser.json({ limit: '10mb' }));
 
-app.post('/api/upload', (req, res) => {
-    const { image } = req.body;
-    const base64Data = image.replace(/^data:image\/jpeg;base64,/, "");
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, path.join(__dirname, '..', 'src', 'components', 'media'));
+  },
+  filename: (req, file, cb) => {
+    const ext = file.mimetype.split('/')[1];
+    const filename = `${uuidv4()}.${ext}`;
+    cb(null, filename);
+  }
+});
 
-    const filePath = path.join(__dirname, '..', 'src', 'components', 'images', `image-${Date.now()}.jpg`);
+const upload = multer({ storage });
 
-    // Save the image to the file system
-    fs.writeFile(filePath, base64Data, 'base64', (err) => {
-      if (err) {
-        console.error('Error saving image:', err);
-        return res.status(500).json({ message: 'Internal server error' });
-      }
-      
-      console.log('Received image:', image);
-      res.json({ message: 'Image received successfully!' });
-    });
+app.post('/api/upload', upload.single('media'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'No file uploaded' });
+  }
+  console.log('File received:', req.file);
+  res.json({ message: 'File received successfully!', file: req.file });
 });
 
 app.listen(PORT, () => {
