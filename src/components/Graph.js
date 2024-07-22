@@ -11,7 +11,6 @@ const Graph = () => {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    // Fetch or generate your rPPG data and labels here
     const fetchData = async () => {
       // Simulate fetching data
       const simulatedData = Array.from({ length: 100 }, () => Math.random() * 10);
