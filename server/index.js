@@ -49,6 +49,18 @@ app.post('/api/upload', upload.single('media'), (req, res) => {
   res.json({ message: 'Media received successfully!', file: req.file });
 });
 
+app.post('/api/set-llm', (req, res) => {
+  const { llm } = req.body;
+  // Store the selected LLM (you could use a database or in-memory storage)
+  res.json({ message: 'LLM set successfully!', llm });
+});
+
+app.get('/api/get-llm', (req, res) => {
+  // Retrieve the selected LLM (from database or in-memory storage)
+  res.json({ llm: 'GPT-3' }); // Example, should be replaced with actual retrieval logic
+});
+
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

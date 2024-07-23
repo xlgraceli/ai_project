@@ -2,11 +2,15 @@ import './App.css';
 import Camera from './components/Camera.js';
 import Graph from './components/Graph.js';
 import Face from './components/Face.js';
+import LLMselect from './components/LLMselect.js';
 
-function App() {
+function App() {  
   return (
     <div className="App">
-      <h1>Live Camera</h1>
+      <div className='container'>
+        <LLMselect />
+        <h1 className='header'>Live Camera</h1>
+      </div>
       <Camera />
       <h1>rPPG Graph</h1>
       <Graph />

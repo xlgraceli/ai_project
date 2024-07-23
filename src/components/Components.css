@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  position: relative;
 }
 
 .mirrored {
@@ -88,4 +89,15 @@
   top: 75%; 
   left: 80%; 
   transform: translateX(-50%); 
+}
+
+.llm-selection {
+  position: absolute;
+  left: 20px;
+}
+
+#llm-select {
+  padding: 10px;
+  margin-left: 10px;
+  border: 1px solid #ccc;
 }
