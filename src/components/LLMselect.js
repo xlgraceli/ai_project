@@ -4,16 +4,18 @@ import './Components.css';
 
 const LLMselect = () => {
     const [selectedLLM, setSelectedLLM] = useState(null);
-    const [llmOptions] = useState(['GPT-3', 'Phi-3']);
+    const [llmOptions] = useState(['Phi-3', 'GPT-3', 'Llama', 'Gemini']);
 
     const handleSelectLLM = async (event) => {
         const llm = event.target.value;
         setSelectedLLM(llm);
+        //await axios.post('http://146.190.115.255:8081/api/set-llm', { llm })
         await axios.post('http://localhost:5000/api/set-llm', { llm })
     }
 
     useEffect(() => {
         const fetchLLM = async () => {
+            //const response = await axios.get('http://146.190.115.255:8081/api/get-llm');
             const response = await axios.get('http://localhost:5000/api/get-llm');
             setSelectedLLM(response.data.llm);
         };
