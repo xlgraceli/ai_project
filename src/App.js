@@ -17,7 +17,7 @@ function App() {
       <h1>rPPG Graph</h1>
       <Graph />
       <h1>Face Map</h1>
-      <Face />
+      {/*<Face />*/}
     </div>
   );
 }
