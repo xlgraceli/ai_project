@@ -1,8 +1,10 @@
-import React, { useRef, useState, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import './Components.css';
+import Face from './Face';
+
 
 const Camera = () => {
   const webcamRef = useRef(null);
@@ -10,6 +12,7 @@ const Camera = () => {
   const [capturing, setCapturing] = useState(false);
   const [videoChunks, setVideoChunks] = useState([]);
   const [timer, setTimer] = useState(10);
+  const [processedImageURL, setProcessedImageURL] = useState(null);
 
   //screenshots & send to API
   const captureImage = async () => {
@@ -69,14 +72,32 @@ const Camera = () => {
   //function to send media to API
   const sendMediaToApi = async (mediaData, mediaId, mediaType) => {
     const formData = new FormData();
-    formData.append('media', mediaData, `${mediaId}.${mediaType === 'image' ? 'jpeg' : 'webm'}`);
+    formData.append('media', mediaData, `${mediaId}.${mediaType === 'image' ? 'png' : 'webm'}`);
     formData.append('type', mediaType);
+
     try {
       const response = await axios.post('http://localhost:5000/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       });
+
+      if (mediaType === 'image'){
+        const processedImagePath = response.data.processedImagePath;
+        if(processedImagePath){
+          // const imageResponse = await axios.get(`http://localhost:5000/media/${processedImagePath}`, { responseType: 'blob' });
+          // const imageBlob = new Blob([imageResponse.data], { type: 'image/png' });
+          // const imageUrl = URL.createObjectURL(imageBlob);
+
+          // setProcessedImageURL(imageUrl);
+          // console.log('Processed Image URL:', imageUrl)
+          const imageUrl = `http://localhost:5000/media/${processedImagePath}`;
+          console.log('Processed Image URL:', imageUrl);
+
+        }
+      }else{
+        console.log('Video sent, no further processing.');
+      }
       console.log('API Response:', response.data);
     } catch (error) {
       console.error('Error sending media to API:', error);
@@ -104,13 +125,14 @@ const Camera = () => {
 
   return (
     <div className="camera">
-      <Webcam className="mirrored" audio={false} ref={webcamRef} screenshotFormat="image/jpeg" />
+      <Webcam className="mirrored" audio={false} ref={webcamRef} screenshotFormat="image/png" />
       <div className="buttons">
         <button className="button" onClick={captureImage}>Take Photo</button>
         <button className="button" onClick={startRecording} disabled={capturing}>
           {capturing ? `Recording...${timer}s` : 'Start Recording 10s'}
         </button>
       </div>
+      {processedImageURL && <Face processedImageURL={processedImageURL} />}
     </div>
   );
 };

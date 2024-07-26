@@ -1,6 +1,6 @@
 import React from 'react';
 import './Components.css';
-import acneFaceMapImage from './media/4f37267c-2cdd-4b16-b8df-a3008a93b9d3.jpeg'; 
+//import acneFaceMapImage from './media/4f37267c-2cdd-4b16-b8df-a3008a93b9d3.jpeg'; 
 
 const mockData = [
     { region: 'Forehead Nose', reasons: ['Stress', 'Improper digestion', 'Irregular sleep', 'Poor diet', 'Hair conditions', 'Touching with unclean hands'] },
@@ -11,10 +11,10 @@ const mockData = [
     { region: 'Jawline Chin', reasons: ['Hormonal imbalance', 'Diet'] },
 ];
   
-const Face = () => {
+const Face = ({processedImageURL}) => {
     return (
         <div className="face-map-container">
-            <img src={acneFaceMapImage} alt="Acne Face Map" className="face-map-image" />
+            <img src={processedImageURL} alt="Acne Face Map" className="face-map-image" />
             <div className="face-overlay">
                 {mockData.map((item, index) => (
                 <div key={index} className={`region-label region-${item.region.replace(/\s+/g, '-').toLowerCase()}`}>
