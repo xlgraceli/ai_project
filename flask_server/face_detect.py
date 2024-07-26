@@ -28,6 +28,7 @@ class ImageProcessing:
             cv.rectangle(input_image, (x, y), (x+w, int(1.2*y)+h), (0, 0, 255), 2)
             faces = input_image[y:int(1.2*y) + h, x:x + w]
             cv.imwrite('flask_server/processed_image/cropped_output_face.png', faces)
+            cv.imwrite('src/components/media/cropped_output_face.png', faces)
 
     def detect_face(self):
 
@@ -35,19 +36,38 @@ class ImageProcessing:
         if input_image is None:
             raise ValueError(f"Image at path {self.image} could not be loaded.")
 
+        print(f"Original image shape: {input_image.shape}")
+
         input_image = imutils.resize(input_image)
         gray = cv.cvtColor(input_image, cv.COLOR_BGR2GRAY)
 
+        print(f"Gray image shape: {gray.shape}")
+        print(f"Gray image dtype: {gray.dtype}")
+
+        if not gray.flags['C_CONTIGUOUS']:
+            gray = np.ascontiguousarray(gray)
+            print("Gray image was not contiguous, converted to contiguous.")
+        
+        if gray.dtype != np.uint8:
+            raise ValueError(f"Gray image is not in 8-bit format, found dtype: {gray.dtype}")
+
+
         rectangles = self.detector(gray, 1)
 
-        for (i, rectangle) in enumerate(rectangles):
+        print(f"Number of rectangles detected: {len(rectangles)}")
 
+
+        for (i, rectangle) in enumerate(rectangles):
             shape = self.predictor(gray, rectangle)
             shape = imutils.face_utils.shape_to_np(shape)
 
             for (x, y) in shape:
                 cv.circle(input_image, (x, y), 1, (0, 0, 255), -1)
                 cv.imwrite('flask_server/processed_image/landmark_output_face.png', input_image)
+                cv.imwrite('src/components/media/landmark_output_face.png', input_image)
+
+
+        print(f"Processed image saved at: flask_server/processed_image/landmark_output_face.png")
 
 class ImageAnalysis:
 
@@ -163,10 +183,11 @@ def process_image():
         processor.crop_face()
         processor = ImageProcessing('flask_server/processed_image/cropped_output_face.png')
         processor.detect_face()
-        processed_image_path = 'cropped_output_face.png'
+        processed_image_path = 'flask_server/processed_image/cropped_output_face.png'
 
         return jsonify({'processedImagePath': processed_image_path}), 200
     except Exception as e:
+        app.logger.error(f"Error processing image: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 
