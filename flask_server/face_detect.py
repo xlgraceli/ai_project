@@ -1,11 +1,11 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import cv2 as cv
 import dlib
 import imutils
 import imutils.face_utils
 import numpy as np
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 class ImageProcessing:
 
@@ -16,7 +16,7 @@ class ImageProcessing:
         self.predictor = dlib.shape_predictor("flask_server/shape_predictor_81_face_landmarks.dat")
             
     def crop_face(self):
-        
+
         input_image = cv.imread(self.image)
         gray = cv.cvtColor(input_image, cv.COLOR_BGR2GRAY)
 
@@ -27,54 +27,33 @@ class ImageProcessing:
         for (x, y, w, h) in faces:
             cv.rectangle(input_image, (x, y), (x+w, int(1.2*y)+h), (0, 0, 255), 2)
             faces = input_image[y:int(1.2*y) + h, x:x + w]
-            cv.imwrite('flask_server/processed_image/cropped_output_face.png', faces)
-            cv.imwrite('src/components/media/cropped_output_face.png', faces)
+            cv.imwrite('static/processed_image/cropped_output_face.png', faces)
+            cv.imwrite('src/components/media/cropped_output_face.png', faces)   
 
     def detect_face(self):
 
         input_image = cv.imread(self.image)
-        if input_image is None:
-            raise ValueError(f"Image at path {self.image} could not be loaded.")
-
-        print(f"Original image shape: {input_image.shape}")
-
         input_image = imutils.resize(input_image)
         gray = cv.cvtColor(input_image, cv.COLOR_BGR2GRAY)
 
-        print(f"Gray image shape: {gray.shape}")
-        print(f"Gray image dtype: {gray.dtype}")
-
-        if not gray.flags['C_CONTIGUOUS']:
-            gray = np.ascontiguousarray(gray)
-            print("Gray image was not contiguous, converted to contiguous.")
-        
-        if gray.dtype != np.uint8:
-            raise ValueError(f"Gray image is not in 8-bit format, found dtype: {gray.dtype}")
-
-
         rectangles = self.detector(gray, 1)
 
-        print(f"Number of rectangles detected: {len(rectangles)}")
-
-
         for (i, rectangle) in enumerate(rectangles):
+
             shape = self.predictor(gray, rectangle)
             shape = imutils.face_utils.shape_to_np(shape)
 
             for (x, y) in shape:
                 cv.circle(input_image, (x, y), 1, (0, 0, 255), -1)
-                cv.imwrite('flask_server/processed_image/landmark_output_face.png', input_image)
-                cv.imwrite('src/components/media/landmark_output_face.png', input_image)
-
-
-        print(f"Processed image saved at: flask_server/processed_image/landmark_output_face.png")
+                cv.imwrite('static/processed_image/landmark_output_face.png', input_image)
+                # cv.imwrite('src/components/media/landmark_output_face.png', input_image)
 
 class ImageAnalysis:
 
     def __init__(self, image):
         self.image = image
         self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor("shape_predictor_81_face_landmarks.dat")
+        self.predictor = dlib.shape_predictor("flask_server/shape_predictor_81_face_landmarks.dat")
 
     def extract_facial_regions(self):
 
@@ -109,7 +88,7 @@ class ImageAnalysis:
                     except:
                         break
 
-                    cv.imwrite('processed_image/' + key + '.png', roi)
+                    cv.imwrite('static/processed_image/' + key + '.png', roi)
         
             #cv.imwrite('/Users/nathanlo/PycharmProjects/iDC - AI Project/processed_image/' + key + '2.png', imutils.face_utils.visualize_facial_landmarks(input_image, shape))
 
@@ -127,8 +106,8 @@ class ImageAnalysis:
 
             right_cheek = input_image[shape[28][1]:shape[33][1], shape[53][0]:shape[12][0]]
             left_cheek = input_image[shape[28][1]:shape[33][1], shape[4][0]:shape[48][0]]
-            cv.imwrite('processed_image/right_cheek.png', right_cheek)
-            cv.imwrite('processed_image/left_cheek.png', left_cheek)
+            cv.imwrite('static/processed_image/right_cheek.png', right_cheek)
+            cv.imwrite('static/processed_image/left_cheek.png', left_cheek)
 
     def extract_forehead(self):
 
@@ -142,7 +121,7 @@ class ImageAnalysis:
 
         cropped_image = input_image[y:y+h, x:x+w]
 
-        cv.imwrite('processed_image/forehead.png', cropped_image)      
+        cv.imwrite('static/processed_image/forehead.png', cropped_image)      
 
 
 class RGBProcessing:
@@ -151,7 +130,7 @@ class RGBProcessing:
 
         self.image = image
         self.detector = dlib.get_frontal_face_detector()
-        self.predictor = dlib.shape_predictor("shape_predictor_81_face_landmarks.dat")
+        self.predictor = dlib.shape_predictor("flask_server/shape_predictor_81_face_landmarks.dat")
 
 
     def rgb_filter(self):
@@ -181,15 +160,25 @@ def process_image():
     try:
         processor = ImageProcessing(image_path)
         processor.crop_face()
-        processor = ImageProcessing('flask_server/processed_image/cropped_output_face.png')
+        processor = ImageProcessing('static/processed_image/cropped_output_face.png')
         processor.detect_face()
-        processed_image_path = 'flask_server/processed_image/cropped_output_face.png'
+        
+
+        image_landmark = ImageAnalysis('static/processed_image/landmark_output_face.png')
+        image_landmark.extract_facial_regions()
+        image_landmark.extract_forehead()
+        image_landmark.extract_cheeks()
+        processed_image_path = 'processed_image/cropped_output_face.png'
 
         return jsonify({'processedImagePath': processed_image_path}), 200
     except Exception as e:
         app.logger.error(f"Error processing image: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/static/<path:path>')
+def send_static(path):
+    return send_from_directory('static', path)
 
 
 # def main():

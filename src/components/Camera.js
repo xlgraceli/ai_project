@@ -13,6 +13,8 @@ const Camera = () => {
   const [videoChunks, setVideoChunks] = useState([]);
   const [timer, setTimer] = useState(10);
   const [processedImageURL, setProcessedImageURL] = useState(null);
+  const [imageCaptured, setImageCaptured] = useState(false);
+
 
   //screenshots & send to API
   const captureImage = async () => {
@@ -84,16 +86,15 @@ const Camera = () => {
 
       if (mediaType === 'image'){
         const processedImagePath = response.data.processedImagePath;
-        if(processedImagePath){
-          // const imageResponse = await axios.get(`http://localhost:5000/media/${processedImagePath}`, { responseType: 'blob' });
-          // const imageBlob = new Blob([imageResponse.data], { type: 'image/png' });
-          // const imageUrl = URL.createObjectURL(imageBlob);
-
-          // setProcessedImageURL(imageUrl);
-          // console.log('Processed Image URL:', imageUrl)
-          const imageUrl = `http://localhost:5000/media/${processedImagePath}`;
-          console.log('Processed Image URL:', imageUrl);
-
+        console.log('Processed Image URL:', processedImagePath);
+        if (processedImagePath) {
+          // URL for accessing processed image
+          const imageUrl = `http://localhost:5000/static/${processedImagePath}`;
+          setProcessedImageURL(imageUrl);
+          setImageCaptured(true);
+          console.log('Set Image URL:', processedImagePath);
+        } else {
+            console.log('Error: Photo Null');
         }
       }else{
         console.log('Video sent, no further processing.');
@@ -132,7 +133,8 @@ const Camera = () => {
           {capturing ? `Recording...${timer}s` : 'Start Recording 10s'}
         </button>
       </div>
-      {processedImageURL && <Face processedImageURL={processedImageURL} />}
+      {imageCaptured && <h1>Face Map Display</h1>}
+      {imageCaptured && <Face />}
     </div>
   );
 };

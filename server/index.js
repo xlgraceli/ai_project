@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
+const {spawn} = require('child_process');
 //const { Client } = require('ssh2');
 const axios = require('axios');
 
@@ -17,7 +18,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
-app.use('/media', express.static(path.join(__dirname, '..', 'src', 'components', 'media')));
+app.use('/processed_image', express.static(path.join(__dirname, '..', 'flask_server','processed_image')));
 
 
 // // SSH Configuration
@@ -67,6 +68,27 @@ app.post('/api/upload', upload.single('media'), async (req, res) => {
   const fileExtension = path.extname(req.file.originalname).toLowerCase();
   if (validExtensions.includes(fileExtension)) {
     try{
+      // const python = spawn('python', ['../flask_server/face_detect.py', req.file.path]);
+      // let dataToSend = '';
+
+      // python.stdout.on('data', (data) => {
+      //   dataToSend += data.toString();
+      // });
+
+      // python.stderr.on('data', (data) => {
+      //   console.error(`stderr: ${data}`);
+      // });
+
+
+      // python.on('close', (code) => {
+      //   if (code === 0) {
+      //     console.log(`Python script finished with code ${code}`);
+      //     res.json({ message: 'Media received and processed successfully!', processedImagePath: 'processed_image/' });
+      //   } else {
+      //     res.status(500).json({ message: 'Error processing image' });
+      //   }
+      // });
+
       const response = await axios.post('http://localhost:5001/process-image',{
         imagePath: req.file.path
       });
