@@ -4,9 +4,8 @@ const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
-const {spawn} = require('child_process');
-//const { Client } = require('ssh2');
 const axios = require('axios');
+const FormData = require('form-data');
 
 const app = express();
 //const PORT = process.env.PORT || 8081;
@@ -19,15 +18,6 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use('/processed_image', express.static(path.join(__dirname, '..', 'flask_server','processed_image')));
-
-
-// // SSH Configuration
-// const sshConfig = {
-//   host: '146.190.115.255',
-//   port: 22, 
-//   username: 'intern2024',
-//   password: 'wbw123456', 
-// };
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -67,43 +57,31 @@ app.post('/api/upload', upload.single('media'), async (req, res) => {
   const validExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
   const fileExtension = path.extname(req.file.originalname).toLowerCase();
   if (validExtensions.includes(fileExtension)) {
-    try{
-      // const python = spawn('python', ['../flask_server/face_detect.py', req.file.path]);
-      // let dataToSend = '';
-
-      // python.stdout.on('data', (data) => {
-      //   dataToSend += data.toString();
-      // });
-
-      // python.stderr.on('data', (data) => {
-      //   console.error(`stderr: ${data}`);
-      // });
-
-
-      // python.on('close', (code) => {
-      //   if (code === 0) {
-      //     console.log(`Python script finished with code ${code}`);
-      //     res.json({ message: 'Media received and processed successfully!', processedImagePath: 'processed_image/' });
-      //   } else {
-      //     res.status(500).json({ message: 'Error processing image' });
-      //   }
-      // });
-
-      const response = await axios.post('http://localhost:5001/process-image',{
-        imagePath: req.file.path
+    try {
+      const form = new FormData();
+      form.append('media', fs.createReadStream(req.file.path), path.basename(req.file.path));
+      
+      const response = await axios.post('http://146.190.115.255:8081/process-image', form, {
+        headers: {
+          ...form.getHeaders(),
+          'Content-Type': 'multipart/form-data'
+        }
       });
-      res.json({ message: 'Media received and processed successfully!', processedImagePath: response.data.processedImagePath });
-    }catch (error) {
+
+      res.json({ 
+        message: 'Media received and processed successfully!',
+        processedImagePath: response.data.processedImagePath 
+      });
+    } catch (error) {
       console.error('Error processing image:', error);
       res.status(500).json({ message: 'Error processing image' });
     }
-
-  // Video returns
-  }else{
+  } else {
     console.log('File received:', req.file);
     res.json({ message: 'Media received successfully!', file: req.file });
   }
 });
+
 
 app.post('/api/set-llm', (req, res) => {
   const { llm } = req.body;

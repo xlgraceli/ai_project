@@ -89,7 +89,7 @@ const Camera = () => {
         console.log('Processed Image URL:', processedImagePath);
         if (processedImagePath) {
           // URL for accessing processed image
-          const imageUrl = `http://localhost:5000/static/${processedImagePath}`;
+          const imageUrl = `http://146.190.115.255:8081/flask_server/${processedImagePath}`;
           setProcessedImageURL(imageUrl);
           setImageCaptured(true);
           console.log('Set Image URL:', processedImagePath);
@@ -134,7 +134,7 @@ const Camera = () => {
         </button>
       </div>
       {imageCaptured && <h1>Face Map Display</h1>}
-      {imageCaptured && <Face />}
+      {imageCaptured && <Face processedImageURL={processedImageURL}/>}
     </div>
   );
 };
