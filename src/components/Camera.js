@@ -14,6 +14,7 @@ const Camera = () => {
   const [timer, setTimer] = useState(10);
   const [processedImageURL, setProcessedImageURL] = useState(null);
   const [imageCaptured, setImageCaptured] = useState(false);
+  const [reloadImage, setReloadImage] = useState(false);
 
 
   //screenshots & send to API
@@ -81,7 +82,7 @@ const Camera = () => {
       const response = await axios.post('http://localhost:5000/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        }
+        },
       });
 
       if (mediaType === 'image'){
@@ -92,6 +93,7 @@ const Camera = () => {
           const imageUrl = `http://146.190.115.255:8081/flask_server/${processedImagePath}`;
           setProcessedImageURL(imageUrl);
           setImageCaptured(true);
+          setReloadImage(prev => !prev);
           console.log('Set Image URL:', processedImagePath);
         } else {
             console.log('Error: Photo Null');
@@ -134,7 +136,7 @@ const Camera = () => {
         </button>
       </div>
       {imageCaptured && <h1>Face Map Display</h1>}
-      {imageCaptured && <Face processedImageURL={processedImageURL}/>}
+      {imageCaptured && <Face key={reloadImage} filename = {'cropped_output_face'}/>}
     </div>
   );
 };

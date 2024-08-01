@@ -4,20 +4,26 @@ const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
+const fsPromises = require('fs').promises;
 const axios = require('axios');
 const FormData = require('form-data');
+const { Client } = require('ssh2');
+
 
 const app = express();
 //const PORT = process.env.PORT || 8081;
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: 'http://localhost:3000',
-  methods: ['GET', 'POST'],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use('/processed_image', express.static(path.join(__dirname, '..', 'flask_server','processed_image')));
+
+const sshConfig = {
+  host: '146.190.115.255',
+  port: 6000,
+  username: 'intern2024',
+  password: 'wbw123456' 
+};
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -79,6 +85,53 @@ app.post('/api/upload', upload.single('media'), async (req, res) => {
   } else {
     console.log('File received:', req.file);
     res.json({ message: 'Media received successfully!', file: req.file });
+  }
+});
+
+app.get('/image', async (req, res) => {
+  const localPath = path.join(__dirname, '..', 'src', 'components', 'media', 'cropped_output_face.png');
+  try {
+    console.log('Received request for image');
+    
+    const conn = new Client();
+    
+    await new Promise((resolve, reject) => {
+      conn.on('ready', () => {
+        console.log('SSH connection ready');
+        conn.sftp((err, sftp) => {
+          if (err) {
+            console.error('SFTP error:', err);
+            return reject(err);
+          }
+
+          const remotePath = 'flask_server/processed_image/cropped_output_face.png'; // Path to the image on the SSH server
+          
+          console.log('Downloading file from', remotePath, 'to', localPath);
+          sftp.fastGet(remotePath, localPath, (err) => {
+            if (err) {
+              console.error('Error during file transfer:', err);
+              return reject(err);
+            }
+
+            console.log('File transfer complete');
+            conn.end();
+            resolve(localPath);
+          });
+        });
+      }).connect(sshConfig);
+    });
+
+    // After connection and file transfer are done
+    console.log('Reading file from local path');
+    const data = await fsPromises.readFile(localPath);
+
+    res.writeHead(200, { 'Content-Type': 'image/png' });
+    res.end(data);
+    console.log('File sent successfully');
+
+  } catch (error) {
+    console.error('Unexpected Error:', error);
+    res.status(500).send('Unexpected error');
   }
 });
 
