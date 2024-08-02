@@ -18,9 +18,21 @@
 }
 
 .button{
-  padding: 8px 20px;
-  font-size: 16px;
+  background-color: #78b288; /* Replace with actual color codes */
+  border: none;
+  color: white; /* Or any other color based on your design */
+  padding: 15px 20px; /* Adjust padding as needed */
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px; /* Adjust font size as needed */
+  margin: 4px 2px;
   cursor: pointer;
+  border-radius: 8px;
+
+  /* padding: 8px 20px;
+  font-size: 16px;
+  cursor: pointer; */
 }
 
 .graph-container {
@@ -41,7 +53,7 @@
   height: auto;
 }
 
-.face-overlay {
+/* .face-overlay {
   position: absolute;
   top: 0;
   left: 0;
@@ -100,4 +112,4 @@
   padding: 10px;
   margin-left: 10px;
   border: 1px solid #ccc;
-}
+} */

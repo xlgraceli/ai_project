@@ -89,7 +89,7 @@ app.post('/api/upload', upload.single('media'), async (req, res) => {
 });
 
 app.get('/image', async (req, res) => {
-  const localPath = path.join(__dirname, '..', 'src', 'components', 'media', 'cropped_output_face.png');
+  const localPath = path.join(__dirname, '..', 'src', 'components', 'media', 'image_patch.png');
   try {
     console.log('Received request for image');
     
@@ -104,7 +104,7 @@ app.get('/image', async (req, res) => {
             return reject(err);
           }
 
-          const remotePath = 'flask_server/processed_image/cropped_output_face.png'; // Path to the image on the SSH server
+          const remotePath = 'flask_server/processed_image/image_patch.png'; // Path to the image on the SSH server
           
           console.log('Downloading file from', remotePath, 'to', localPath);
           sftp.fastGet(remotePath, localPath, (err) => {
@@ -135,17 +135,16 @@ app.get('/image', async (req, res) => {
   }
 });
 
+// app.post('/api/set-llm', (req, res) => {
+//   const { llm } = req.body;
+//   // Store the selected LLM
+//   res.json({ message: 'LLM set successfully!', llm });
+// });
 
-app.post('/api/set-llm', (req, res) => {
-  const { llm } = req.body;
-  // Store the selected LLM
-  res.json({ message: 'LLM set successfully!', llm });
-});
-
-app.get('/api/get-llm', (req, res) => {
-  // Retrieve the selected LLM in-memory storage
-  res.json({ llm: 'Phi-3' }); 
-});
+// app.get('/api/get-llm', (req, res) => {
+//   // Retrieve the selected LLM in-memory storage
+//   res.json({ llm: 'Phi-3' }); 
+// });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

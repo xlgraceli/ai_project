@@ -130,13 +130,15 @@ const Camera = () => {
     <div className="camera">
       <Webcam className="mirrored" audio={false} ref={webcamRef} screenshotFormat="image/png" />
       <div className="buttons">
-        <button className="button" onClick={captureImage}>Take Photo</button>
+        <button className="button" onClick={captureImage}><b>Take Photo</b></button>
         <button className="button" onClick={startRecording} disabled={capturing}>
-          {capturing ? `Recording...${timer}s` : 'Start Recording 10s'}
+          <b>
+            {capturing ? `Recording...${timer}s` : 'Start Recording 10s'}
+          </b>
         </button>
       </div>
       {imageCaptured && <h1>Face Map Display</h1>}
-      {imageCaptured && <Face key={reloadImage} filename = {'cropped_output_face'}/>}
+      {imageCaptured && <Face key={reloadImage} filename = {'image_patch'}/>}
     </div>
   );
 };
