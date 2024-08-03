@@ -7,15 +7,21 @@ import Face from './Face';
 
 
 const Camera = () => {
+  //camera function vars
   const webcamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const [capturing, setCapturing] = useState(false);
   const [videoChunks, setVideoChunks] = useState([]);
   const [timer, setTimer] = useState(10);
-  const [processedImageURL, setProcessedImageURL] = useState(null);
+  //const [processedImageURL, setProcessedImageURL] = useState(null);
+  
+  //image processing vars
   const [imageCaptured, setImageCaptured] = useState(false);
   const [reloadImage, setReloadImage] = useState(false);
 
+  //llm function vars
+  const [llmResult, setllmResult] = useState(null);
+  const [llmLoading, setllmLoading] = useState(null);
 
   //screenshots & send to API
   const captureImage = async () => {
@@ -23,6 +29,7 @@ const Camera = () => {
     const imageId = uuidv4();
     if (imageSrc) {
       await sendMediaToApi(dataURItoBlob(imageSrc), imageId, 'image');
+      await sendPromptToBackend(); //for now, need to change later for vids
     }
   };
   
@@ -91,10 +98,10 @@ const Camera = () => {
         if (processedImagePath) {
           // URL for accessing processed image
           const imageUrl = `http://146.190.115.255:8081/flask_server/${processedImagePath}`;
-          setProcessedImageURL(imageUrl);
+          //setProcessedImageURL(imageUrl);
           setImageCaptured(true);
           setReloadImage(prev => !prev);
-          console.log('Set Image URL:', processedImagePath);
+          console.log('Image processed');
         } else {
             console.log('Error: Photo Null');
         }
@@ -126,19 +133,56 @@ const Camera = () => {
     }
   }, [capturing, videoChunks, handleSendVideo]);
 
+  const sendPromptToBackend = async () => {
+    setllmLoading(true);
+    
+    //temporary prompt
+    const prompt = `
+      Prompt: You are an AI system trained to detect the heart rate, skin tone, and health implications 
+      of a user’s face. Your task is to identify how high/low a person’s heart rate is and its health 
+      implications, the color of a person’s skin to identify what skin tone the person has, and notice 
+      anything that stands out on their face.`;
+
+    try {
+      const result = await axios.post('http://localhost:5000/send-prompt', {
+        prompt: prompt,
+        max_tokens: 50,
+        temperature: 0.7
+      });
+
+      setllmResult(result.data);
+      console.log('LLM Server Response:', result.data);
+    } catch (error) {
+      console.error('Error sending prompt to backend server:', error);
+    } finally {
+      setllmLoading(false);
+    }
+  };
+  
+
   return (
     <div className="camera">
       <Webcam className="mirrored" audio={false} ref={webcamRef} screenshotFormat="image/png" />
       <div className="buttons">
-        <button className="button" onClick={captureImage}><b>Take Photo</b></button>
+        <button className="button" onClick={captureImage}><b>Take Photo 📷</b></button>
         <button className="button" onClick={startRecording} disabled={capturing}>
           <b>
-            {capturing ? `Recording...${timer}s` : 'Start Recording 10s'}
+            {capturing ? `Recording ... ${timer}s 🔴` : 'Record 10s 🎥'}
           </b>
         </button>
       </div>
       {imageCaptured && <h1>Face Map Display</h1>}
       {imageCaptured && <Face key={reloadImage} filename = {'image_patch'}/>}
+      {llmLoading && <h1>vLLM Server Result</h1>}
+      {llmLoading && <p>Loading...</p>}
+      {!llmLoading && llmResult && (
+        <div >
+          <h2>Result:</h2>
+          <div className='wrapper'>
+            <pre className='llmResult-container'>{JSON.stringify(llmResult, null,2)}</pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

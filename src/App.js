@@ -10,7 +10,7 @@ function App() {
       {/* <div className='container'>
         <LLMselect />
       </div> */}
-      <h1 className='header'>Live Camera</h1>
+      <h1>Live Camera</h1>
       {/*<<h1 className='header'>Live Camera</h1>*/}
       <Camera />
       <h1>rPPG Graph</h1>

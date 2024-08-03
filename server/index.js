@@ -1,21 +1,21 @@
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
-const axios = require('axios');
 const FormData = require('form-data');
 const { Client } = require('ssh2');
-
+const bodyParser = require('body-parser');
 
 const app = express();
-//const PORT = process.env.PORT || 8081;
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
+app.use(bodyParser.json());
 app.use('/processed_image', express.static(path.join(__dirname, '..', 'flask_server','processed_image')));
 
 const sshConfig = {
@@ -25,6 +25,7 @@ const sshConfig = {
   password: 'wbw123456' 
 };
 
+//stores the media taken locally
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, '..', 'src', 'components', 'media');
@@ -42,6 +43,7 @@ const storage = multer.diskStorage({
   }
 });
 
+//only allows media uploads
 const upload = multer({ 
   storage,
   limits: { fileSize: 100 * 1024 * 1024 },
@@ -54,6 +56,7 @@ const upload = multer({
   }
 });
 
+//uploads images and videos to ssh server for processing (images for now)
 app.post('/api/upload', upload.single('media'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No media uploaded' });
@@ -88,6 +91,7 @@ app.post('/api/upload', upload.single('media'), async (req, res) => {
   }
 });
 
+//retrieves image patch from ssh server
 app.get('/image', async (req, res) => {
   const localPath = path.join(__dirname, '..', 'src', 'components', 'media', 'image_patch.png');
   try {
@@ -104,7 +108,7 @@ app.get('/image', async (req, res) => {
             return reject(err);
           }
 
-          const remotePath = 'flask_server/processed_image/image_patch.png'; // Path to the image on the SSH server
+          const remotePath = 'flask_server/processed_image/image_patch.png';
           
           console.log('Downloading file from', remotePath, 'to', localPath);
           sftp.fastGet(remotePath, localPath, (err) => {
@@ -121,7 +125,6 @@ app.get('/image', async (req, res) => {
       }).connect(sshConfig);
     });
 
-    // After connection and file transfer are done
     console.log('Reading file from local path');
     const data = await fsPromises.readFile(localPath);
 
@@ -134,6 +137,70 @@ app.get('/image', async (req, res) => {
     res.status(500).send('Unexpected error');
   }
 });
+
+//sends prompt to vllm server
+app.post('/send-prompt', async (req, res) => {
+  const { prompt, max_tokens, temperature } = req.body;
+
+  try {
+      const result = await axios.post('http://127.0.0.1:6000/v1/engines/Phi-3-mini-4k-instruct/completions', {
+          prompt: prompt,
+          max_tokens: max_tokens,
+          temperature: temperature
+      }, {
+          headers: {
+              'Content-Type': 'application/json'
+          }
+      });
+
+      res.json(result.data);
+
+  } catch (error) {
+      console.error('Error sending to vLLM server:', error);
+      res.status(500).send('Error communicating with vLLM server');
+  }
+});
+
+// Reads a specific information from a json file on ssh server
+app.get('/api/json', async (req, res) => {
+  //temporary file path 
+  const localFilePath = path.join(__dirname, 'remote.json');
+
+  const conn = new Client();
+
+  conn.on('ready', () => {
+    conn.sftp((err, sftp) => {
+      if (err) {
+        return res.status(500).json({ message: 'SFTP connection error', error: err.message });
+      }
+
+      //temporary file path
+      //const remoteFilePath = '/path/to/remote.json';
+
+      const readStream = sftp.createReadStream(remoteFilePath);
+      const writeStream = fs.createWriteStream(localFilePath);
+
+      readStream.pipe(writeStream);
+
+      writeStream.on('close', async () => {
+        conn.end();
+
+        try {
+          const data = JSON.parse(fs.readFileSync(localFilePath, 'utf8'));
+          const specificInfo = data.HeartRate; //assuming 'HeartRate' is the section title
+          res.json({ specificInfo });
+        } catch (error) {
+          res.status(500).json({ message: 'Error reading local JSON file', error: error.message });
+        }
+      });
+
+      writeStream.on('error', (error) => {
+        res.status(500).json({ message: 'Error writing local JSON file', error: error.message });
+      });
+    });
+  }).connect(sshConfig);
+});
+  
 
 // app.post('/api/set-llm', (req, res) => {
 //   const { llm } = req.body;
