@@ -1,0 +1,6 @@
+flask
+transformers
+torch
+tenacity
+vllm
+tenacity
