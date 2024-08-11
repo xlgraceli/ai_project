@@ -1,16 +1,12 @@
-# Frontend UI
-Make sure the server is running when you open the interface
+# Remote Photoplethysmography (rPPG) Project
+A technique to measure physiological parameters such as heart rate by analyzing videos of a person
 
-### npm start
-To open the interface
-
-### run the server
-cd server and then node index.js
-
-### ssh server
-face_detect.py is in the ssh server
-
-Need to run the ssh server to run the program's backend image processing
-
-### vLLM server
-Need to run vLLM server to receive result from prompt
+### Overview of the Project
+- Face Region Extraction
+- Heart Rate Detection
+- Face Patch Display and Integration
+- REST API
+- Large Language Model (vLLM)
+- Skin Color Matching
+- Prompting
+- Frontend-Backend Integration
