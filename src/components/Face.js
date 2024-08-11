@@ -10,7 +10,7 @@ const Face = ({filename}) => {
         const fetchImage = async () => {
             setLoading(true);
             try {
-                const response = await axios.get('http://localhost:5000/image', {
+                const response = await axios.get(`http://localhost:5000/image?filename=${filename}`, {
                     responseType: 'blob',
                 });
                 const imageBlob = new Blob([response.data], { type: 'image/png' });
@@ -32,7 +32,7 @@ const Face = ({filename}) => {
             {loading ? ( // Show loading sign when loading
                 <div>Loading...</div>
             ) : (
-                <img src={imageUrl} alt="Acne Face Map" className="face-map-image" />
+                <img src={imageUrl} alt="Face Image Patch" className="face-map-image" />
             )}
         </div>
     );

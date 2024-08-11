@@ -50,6 +50,8 @@
   border: 1px solid #ccc; 
   padding: 10px;
   background-color: #a5b8aa; 
+  overflow-y: auto;
+  text-align: left; 
 }
 
 .graph-container {
@@ -69,64 +71,3 @@
   width: 50%;
   height: auto;
 }
-
-/* .face-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.region-label {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid #ccc;
-  padding: 10px;
-  border-radius: 5px;
-}
-
-.region-forehead-nose { 
-  top: 10%; 
-  left: 80%; 
-  width: 250px;
-  transform: translateX(-50%); 
-}
-.region-hairline { 
-  top: 10%; 
-  left: 20%; 
-  transform: translateX(-50%); 
-}
-.region-eyebrow-area { 
-  top: 35%; 
-  left: 17%; 
-  transform: translateX(-50%); 
-}
-.region-ears { 
-  top: 45%; 
-  left: 80%; 
-  width: 250px;
-  transform: translateX(-50%); 
-}
-.region-cheeks { 
-  top: 70%; 
-  left: 14%;
-  transform: translateX(-50%);  
-}
-.region-jawline-chin { 
-  top: 75%; 
-  left: 80%; 
-  transform: translateX(-50%); 
-}
-
-.llm-selection {
-  position: absolute;
-  left: 20px;
-}
-
-#llm-select {
-  padding: 10px;
-  margin-left: 10px;
-  border: 1px solid #ccc;
-} */

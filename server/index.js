@@ -19,10 +19,10 @@ app.use(bodyParser.json());
 app.use('/processed_image', express.static(path.join(__dirname, '..', 'flask_server','processed_image')));
 
 const sshConfig = {
-  host: '146.190.115.255',
-  port: 6000,
-  username: 'intern2024',
-  password: 'wbw123456' 
+  host: 'host',
+  port: 22,
+  username: 'username',
+  password: 'password' 
 };
 
 //stores the media taken locally
@@ -48,7 +48,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'video/webm'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'video/webm', 'video/mov'];
     if (!allowedTypes.includes(file.mimetype)) {
       return cb(new Error('Invalid file type'), false);
     }
@@ -56,44 +56,39 @@ const upload = multer({
   }
 });
 
-//uploads images and videos to ssh server for processing (images for now)
+//uploads images and videos to ssh server for processing
 app.post('/api/upload', upload.single('media'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No media uploaded' });
   }
 
-  // Image sent to face_detect API
-  const validExtensions = ['.jpg', '.jpeg', '.png', '.gif'];
-  const fileExtension = path.extname(req.file.originalname).toLowerCase();
-  if (validExtensions.includes(fileExtension)) {
-    try {
-      const form = new FormData();
-      form.append('media', fs.createReadStream(req.file.path), path.basename(req.file.path));
-      
-      const response = await axios.post('http://146.190.115.255:8081/process-image', form, {
-        headers: {
-          ...form.getHeaders(),
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+  try {
+    const form = new FormData();
+    form.append('media', fs.createReadStream(req.file.path), path.basename(req.file.path));
+    
+    const response = await axios.post('http://link-to-your-ssh-server/process-media', form, {
+      headers: {
+        ...form.getHeaders(),
+        'Content-Type': 'multipart/form-data'
+      }
+    });
 
-      res.json({ 
-        message: 'Media received and processed successfully!',
-        processedImagePath: response.data.processedImagePath 
-      });
-    } catch (error) {
-      console.error('Error processing image:', error);
-      res.status(500).json({ message: 'Error processing image' });
-    }
-  } else {
-    console.log('File received:', req.file);
-    res.json({ message: 'Media received successfully!', file: req.file });
+    res.json({ 
+      message: 'Media received and processed successfully!',
+      processedImagePath: response.data.processedImagePath 
+    });
+  } catch (error) {
+    console.error('Error processing media:', error);
+    res.status(500).json({ message: 'Error processing media' });
   }
 });
 
-//retrieves image patch from ssh server
+//retrieves images from ssh server
 app.get('/image', async (req, res) => {
-  const localPath = path.join(__dirname, '..', 'src', 'components', 'media', 'image_patch.png');
+  const { filename } = req.query;
+
+  const localPath = path.join(__dirname, '..', 'src', 'components', 'media', `${filename}.png`);
+  
   try {
     console.log('Received request for image');
     
@@ -108,7 +103,7 @@ app.get('/image', async (req, res) => {
             return reject(err);
           }
 
-          const remotePath = 'flask_server/processed_image/image_patch.png';
+          const remotePath = `flask_server/output/${filename}.png`;
           
           console.log('Downloading file from', remotePath, 'to', localPath);
           sftp.fastGet(remotePath, localPath, (err) => {
@@ -140,78 +135,14 @@ app.get('/image', async (req, res) => {
 
 //sends prompt to vllm server
 app.post('/send-prompt', async (req, res) => {
-  const { prompt, max_tokens, temperature } = req.body;
-
   try {
-      const result = await axios.post('http://127.0.0.1:6000/v1/engines/Phi-3-mini-4k-instruct/completions', {
-          prompt: prompt,
-          max_tokens: max_tokens,
-          temperature: temperature
-      }, {
-          headers: {
-              'Content-Type': 'application/json'
-          }
-      });
-
-      res.json(result.data);
-
+    const result = await axios.post('http://link-to-your-ssh-server/send-prompt');
+    res.json(result.data);
   } catch (error) {
-      console.error('Error sending to vLLM server:', error);
-      res.status(500).send('Error communicating with vLLM server');
+      console.error('Error sending to LLM server:', error);
+      res.status(500).send('Error communicating with LLM server');
   }
-});
-
-// Reads a specific information from a json file on ssh server
-app.get('/api/json', async (req, res) => {
-  //temporary file path 
-  const localFilePath = path.join(__dirname, 'remote.json');
-
-  const conn = new Client();
-
-  conn.on('ready', () => {
-    conn.sftp((err, sftp) => {
-      if (err) {
-        return res.status(500).json({ message: 'SFTP connection error', error: err.message });
-      }
-
-      //temporary file path
-      //const remoteFilePath = '/path/to/remote.json';
-
-      const readStream = sftp.createReadStream(remoteFilePath);
-      const writeStream = fs.createWriteStream(localFilePath);
-
-      readStream.pipe(writeStream);
-
-      writeStream.on('close', async () => {
-        conn.end();
-
-        try {
-          const data = JSON.parse(fs.readFileSync(localFilePath, 'utf8'));
-          const specificInfo = data.HeartRate; //assuming 'HeartRate' is the section title
-          res.json({ specificInfo });
-        } catch (error) {
-          res.status(500).json({ message: 'Error reading local JSON file', error: error.message });
-        }
-      });
-
-      writeStream.on('error', (error) => {
-        res.status(500).json({ message: 'Error writing local JSON file', error: error.message });
-      });
-    });
-  }).connect(sshConfig);
-});
-  
-
-// app.post('/api/set-llm', (req, res) => {
-//   const { llm } = req.body;
-//   // Store the selected LLM
-//   res.json({ message: 'LLM set successfully!', llm });
-// });
-
-// app.get('/api/get-llm', (req, res) => {
-//   // Retrieve the selected LLM in-memory storage
-//   res.json({ llm: 'Phi-3' }); 
-// });
+});  
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

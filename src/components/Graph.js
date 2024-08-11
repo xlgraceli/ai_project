@@ -1,75 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, LineElement, CategoryScale, LinearScale, PointElement } from 'chart.js';
+import React, {useState, useEffect} from 'react';
+import axios from 'axios';
 import './Components.css';
+  
+const Graph = ({filename}) => {
+    const [imageUrl, setImageUrl] = useState('');
+    const [loading, setLoading] = useState(true);
 
-ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement);
+    useEffect( () => {
+        const fetchImage = async () => {
+            setLoading(true);
+            try {
+                const response = await axios.get(`http://localhost:5000/image?filename=${filename}`, {
+                    responseType: 'blob',
+                });
+                const imageBlob = new Blob([response.data], { type: 'image/png' });
+                const imageObjectUrl = URL.createObjectURL(imageBlob);
+                setImageUrl(imageObjectUrl);
+            } catch (error) {
+                console.error('Error fetching image:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-const Graph = () => {
-  const [chartData, setChartData] = useState({});
-  const [labels, setLabels] = useState([]);
-  const [data, setData] = useState([]);
+        fetchImage();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      // Simulate fetching data
-      const simulatedData = Array.from({ length: 100 }, () => Math.random() * 10);
-      const simulatedLabels = Array.from({ length: 100 }, (_, i) => i / 10); // Simulated time in seconds
+    }, [filename]);
 
-      setData(simulatedData);
-      setLabels(simulatedLabels);
-    };
-
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (data.length && labels.length) {
-      setChartData({
-        labels: labels,
-        datasets: [
-          {
-            label: 'rPPG Signal',
-            data: data,
-            borderColor: 'rgba(75,192,192,1)',
-            borderWidth: 2,
-            fill: false,
-          },
-        ],
-      });
-    }
-  }, [data, labels]);
-
-  return (
-    <div className='graph-container'>
-      {chartData.labels && chartData.labels.length ? (
-        <Line
-          data={chartData}
-          options={{
-            responsive: true,
-            scales: {
-              x: {
-                type: 'linear',
-                position: 'bottom',
-                title: {
-                    display: true,
-                    text: 'Time (seconds)',
-                },
-              },
-              y: {
-                title: {
-                  display: true,
-                  text: 'rPPG Value',
-                },
-              },
-            },
-          }}
-        />
-      ) : (
-        <p>Loading...</p>
-      )}
-    </div>
-  );
+    return (
+        <div className="face-map-container">
+            {loading ? (
+                <div>Loading...</div>
+            ) : (
+                <img src={imageUrl} alt="Average Face RGB Graph" className="face-map-image" 
+                  style={{ 
+                    width: '80%',  // Adjust this value to control the size
+                    maxWidth: '100%', 
+                    height: 'auto' 
+                  }} 
+                />
+            )}
+        </div>
+    );
 };
 
 export default Graph;

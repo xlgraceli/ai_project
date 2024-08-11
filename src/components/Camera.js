@@ -4,6 +4,7 @@ import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import './Components.css';
 import Face from './Face';
+import Graph from './Graph';
 
 
 const Camera = () => {
@@ -13,11 +14,15 @@ const Camera = () => {
   const [capturing, setCapturing] = useState(false);
   const [videoChunks, setVideoChunks] = useState([]);
   const [timer, setTimer] = useState(10);
-  //const [processedImageURL, setProcessedImageURL] = useState(null);
-  
+  const [isVideoProcessing, setIsVideoProcessing] = useState(false);
+
   //image processing vars
   const [imageCaptured, setImageCaptured] = useState(false);
   const [reloadImage, setReloadImage] = useState(false);
+
+  //graph loading vars
+  const [graphProcessed, setGraphProcessed] = useState(false);
+  const [reloadGraph, setReloadGraph] = useState(false);
 
   //llm function vars
   const [llmResult, setllmResult] = useState(null);
@@ -29,7 +34,7 @@ const Camera = () => {
     const imageId = uuidv4();
     if (imageSrc) {
       await sendMediaToApi(dataURItoBlob(imageSrc), imageId, 'image');
-      await sendPromptToBackend(); //for now, need to change later for vids
+      //await sendPromptToBackend();
     }
   };
   
@@ -86,6 +91,10 @@ const Camera = () => {
     formData.append('type', mediaType);
 
     try {
+      if (mediaType === 'video') {
+          setIsVideoProcessing(true);
+      }
+
       const response = await axios.post('http://localhost:5000/api/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -93,24 +102,22 @@ const Camera = () => {
       });
 
       if (mediaType === 'image'){
-        const processedImagePath = response.data.processedImagePath;
-        console.log('Processed Image URL:', processedImagePath);
-        if (processedImagePath) {
-          // URL for accessing processed image
-          const imageUrl = `http://146.190.115.255:8081/flask_server/${processedImagePath}`;
-          //setProcessedImageURL(imageUrl);
-          setImageCaptured(true);
-          setReloadImage(prev => !prev);
-          console.log('Image processed');
-        } else {
-            console.log('Error: Photo Null');
-        }
+        setImageCaptured(true);
+        setReloadImage(prev => !prev);
+        console.log('Image processed');
       }else{
-        console.log('Video sent, no further processing.');
+        console.log('Video processed');
+        setGraphProcessed(true);
+        setReloadGraph(prev => !prev);
+        await sendPromptToBackend();
       }
       console.log('API Response:', response.data);
     } catch (error) {
       console.error('Error sending media to API:', error);
+    } finally {
+        if (mediaType === 'video') {
+            setIsVideoProcessing(false);
+        }
     }
   };
 
@@ -129,29 +136,22 @@ const Camera = () => {
   // Send video when capturing stops
   useEffect(() => {
     if (!capturing && videoChunks.length) {
+      setIsVideoProcessing(true);
       handleSendVideo();
     }
   }, [capturing, videoChunks, handleSendVideo]);
 
+  //send prompt to vllm server
   const sendPromptToBackend = async () => {
     setllmLoading(true);
-    
-    //temporary prompt
-    const prompt = `
-      Prompt: You are an AI system trained to detect the heart rate, skin tone, and health implications 
-      of a user’s face. Your task is to identify how high/low a person’s heart rate is and its health 
-      implications, the color of a person’s skin to identify what skin tone the person has, and notice 
-      anything that stands out on their face.`;
-
     try {
-      const result = await axios.post('http://localhost:5000/send-prompt', {
-        prompt: prompt,
-        max_tokens: 50,
-        temperature: 0.7
-      });
-
-      setllmResult(result.data);
-      console.log('LLM Server Response:', result.data);
+      const result = await axios.post('http://localhost:5000/send-prompt');
+      if (result.data.choices && result.data.choices.length > 0) {
+        setllmResult(result.data.choices[0].text.replace(/\n/g, '<br />'));
+    } else {
+        setllmResult('No response available');
+    }
+    console.log('LLM Server Response:', result.data);
     } catch (error) {
       console.error('Error sending prompt to backend server:', error);
     } finally {
@@ -171,15 +171,18 @@ const Camera = () => {
           </b>
         </button>
       </div>
+      {isVideoProcessing && <p>Processing video, please wait...</p>}
       {imageCaptured && <h1>Face Map Display</h1>}
-      {imageCaptured && <Face key={reloadImage} filename = {'image_patch'}/>}
-      {llmLoading && <h1>vLLM Server Result</h1>}
+      {imageCaptured && <Face key={`image-${reloadImage}`} filename = {'image_patch'}/>}
+      {graphProcessed && <h1>Average Face RGB Graph</h1>}
+      {graphProcessed && <Graph key={`graph-${reloadGraph}`} filename = {'average_rgb_per_frame'}/>}
+      {llmLoading && <h1>Your Health Results</h1>}
       {llmLoading && <p>Loading...</p>}
       {!llmLoading && llmResult && (
         <div >
-          <h2>Result:</h2>
+          <h1>Your Health Results</h1>
           <div className='wrapper'>
-            <pre className='llmResult-container'>{JSON.stringify(llmResult, null,2)}</pre>
+            <pre className='llmResult-container' dangerouslySetInnerHTML={{ __html: llmResult }}></pre>
           </div>
         </div>
       )}
