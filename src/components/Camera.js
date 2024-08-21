@@ -34,7 +34,6 @@ const Camera = () => {
     const imageId = uuidv4();
     if (imageSrc) {
       await sendMediaToApi(dataURItoBlob(imageSrc), imageId, 'image');
-      //await sendPromptToBackend();
     }
   };
   
@@ -47,7 +46,7 @@ const Camera = () => {
     []
   );
 
-  //starts recording 10s & auto stop
+  //starts recording 11s & auto stop
   const startRecording = useCallback(() => {
     setCapturing(true);
     setVideoChunks([]);
@@ -84,7 +83,7 @@ const Camera = () => {
     }
   }, [videoChunks]);
 
-  //function to send media to API
+  //function to send media to backend api
   const sendMediaToApi = async (mediaData, mediaId, mediaType) => {
     const formData = new FormData();
     formData.append('media', mediaData, `${mediaId}.${mediaType === 'image' ? 'png' : 'webm'}`);

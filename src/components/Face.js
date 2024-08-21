@@ -19,7 +19,7 @@ const Face = ({filename}) => {
             } catch (error) {
                 console.error('Error fetching image:', error);
             } finally {
-                setLoading(false); // Set loading to false when image is fetched
+                setLoading(false); 
             }
         };
 
@@ -29,7 +29,7 @@ const Face = ({filename}) => {
 
     return (
         <div className="face-map-container">
-            {loading ? ( // Show loading sign when loading
+            {loading ? (
                 <div>Loading...</div>
             ) : (
                 <img src={imageUrl} alt="Face Image Patch" className="face-map-image" />

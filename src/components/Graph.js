@@ -34,7 +34,7 @@ const Graph = ({filename}) => {
             ) : (
                 <img src={imageUrl} alt="Average Face RGB Graph" className="face-map-image" 
                   style={{ 
-                    width: '80%',  // Adjust this value to control the size
+                    width: '80%',  
                     maxWidth: '100%', 
                     height: 'auto' 
                   }} 

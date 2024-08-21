@@ -18,7 +18,7 @@
 }
 
 .button{
-  background-color: #78b288; /* Replace with actual color codes */
+  background-color: #78b288; 
   border: none;
   color: white; 
   padding: 15px 20px;
@@ -32,7 +32,7 @@
 }
 
 .button:hover {
-  background-color: #579369; /* Change to a different color on hover */
+  background-color: #579369; 
 }
 
 .wrapper {
@@ -63,7 +63,7 @@
 .face-map-container{
   position: relative;
   width: 100%;
-  max-width: 1000px; /* Adjust based on your needs */
+  max-width: 1000px; 
   margin: 0 auto;
 }
 

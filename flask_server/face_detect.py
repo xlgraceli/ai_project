@@ -13,7 +13,7 @@ import pandas as pd
 import requests
 from scipy.signal import butter, filtfilt
 from scipy.fft import fft, fftfreq
-import time
+import subprocess
 
 app = Flask(__name__)
 
@@ -292,27 +292,34 @@ class RGBAnalysis:
     def __init__(self, image, pixel_list):
         self.image = image
         self.pixel_list = pixel_list
-
+    
     def rgb_average_from_points(self):
-
+        # Decode the image
         input_image = cv.imdecode(self.image, 1)
-        pixel_rgb = []
-        for value in self.pixel_list:
-            if value[0] < input_image.shape[1]:
-                if value[1] < input_image.shape[0]:
-                    pixel_rgb.append(input_image[value[1],value[0]])
-                else:
-                    continue
-            else:
-                continue
-                
-        pixel_rgb = np.array(pixel_rgb)
-        rgb_average = np.mean(pixel_rgb, axis = 0)
-        rgb_average = np.asarray(rgb_average)
 
+        # Convert pixel_list to a numpy array for efficient processing
+        pixel_array = np.array(self.pixel_list)
+
+        if pixel_array.size == 0:
+            return None
+
+        # Filter out invalid pixel locations
+        
+        valid_mask = (pixel_array[:, 0] < input_image.shape[1]) & (pixel_array[:, 1] < input_image.shape[0])
+        valid_pixels = pixel_array[valid_mask]
+
+        # Extract RGB values using numpy advanced indexing
+        if valid_pixels.size == 0:
+            return None  # Return None if no valid pixels
+
+        pixel_rgb = input_image[valid_pixels[:, 1], valid_pixels[:, 0]]
+
+        # Compute the average RGB values
+        rgb_average = np.mean(pixel_rgb, axis=0)
+
+        # Ensure the output is a numpy array of size 3
         if rgb_average.size == 3:
             return rgb_average
-
 
 class SkinToneAnalysis:
 
@@ -340,13 +347,24 @@ def bandpass_filter(signal, lowcut, highcut, fs, order=5):
     b, a = butter(order, [low, high], btype='band')
     return filtfilt(b, a, signal)
 
+def bandpass_filter2(signal, lowcut, highcut, fs, order=5):
+    nyquist = 0.5 * fs
+    low = lowcut / nyquist
+    high = highcut / nyquist
+    b, a = butter(order, [low, high], btype='band')
+    
+    padlen = min(33, len(signal)-1)
+    # print(padlen)
+    
+    return filtfilt(b, a, signal, padlen=padlen)
 
 def hr_calculator(rgb_average):
     fs = 30
     lowcut = 0.7
     highcut = 4.0
 
-    filtered_rgb = [bandpass_filter(signal, lowcut, highcut, fs) for signal in rgb_average.T]
+    # filtered_rgb = [bandpass_filter(signal, lowcut, highcut, fs) for signal in rgb_average.T]
+    filtered_rgb = [bandpass_filter2(signal, lowcut, highcut, fs) for signal in rgb_average.T]
 
     N = len(filtered_rgb[0])
     frequencies = fftfreq(N, 1/fs)
@@ -355,6 +373,15 @@ def hr_calculator(rgb_average):
     idx = np.argmax(np.abs(fft_values))
     heart_rate = abs(frequencies[idx] * 60)
     return heart_rate
+
+def convert_webm_to_mp4(input_file_path, output_file_path):
+    command = [
+        'ffmpeg', '-i', input_file_path,
+        '-codec:v', 'libx264', '-preset', 'fast',
+        '-crf', '23', '-codec:a', 'aac', '-b:a', '192k',
+        output_file_path
+    ]
+    subprocess.run(command, check=True)
 
 #process media
 @app.route('/process-media', methods=['POST'])
@@ -389,12 +416,16 @@ def process_media():
 
         elif file_extension in ['.mp4', '.webm', '.mov', '.mkv']:
             # Process video
-            vidcap = cv.VideoCapture(file_path)
+            mp4_path = file_path.replace('.webm', '.mp4')
+            convert_webm_to_mp4(file_path, mp4_path)
+
+            vidcap = cv.VideoCapture(mp4_path)
             count = 0
 
             encode_params = [int(cv.IMWRITE_JPEG_QUALITY), 80]
 
             cropped_images = []
+
 
             while vidcap.isOpened():
                 ret, frame = vidcap.read()
@@ -411,12 +442,14 @@ def process_media():
                         facial_regions.extract_facial_regions()
                         facial_regions.extract_forehead()
                         facial_regions.extract_cheeks()
-                        count += 1
 
                     result, encimg = cv.imencode('.jpg', frame, encode_params)
 
                     image_processing = ImageProcessingVid(encimg)
                     cropped_images.append(image_processing.crop_face())
+                    count += 5
+                    vidcap.set(cv.CAP_PROP_POS_FRAMES, count)
+                    print(count)
                     
                 else:
                     vidcap.release()
@@ -532,7 +565,7 @@ def send_prompt():
         Nose: Dermatological conditions of the nose such as broken capillaries are indicators of heavily squeezing pimples, the result of the environment, or pure genetics
         """
 
-        vllm_response = requests.post('http://link-to-your-llm-server', json={
+        vllm_response = requests.post('http://link-to-vllm-server', json={
             'prompt': prompt,
             'max_tokens': 500,
             'temperature': 0.7
@@ -543,7 +576,7 @@ def send_prompt():
 
         return jsonify(result), 200
     except Exception as e:
-        app.logger.error(f"Error sending prompt to LLM server: {str(e)}")
+        app.logger.error(f"Error sending prompt to vLLM server: {str(e)}")
         return jsonify({'error': str(e)}), 500
         
 if __name__ == '__main__':

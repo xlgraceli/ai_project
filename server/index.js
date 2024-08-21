@@ -20,7 +20,7 @@ app.use('/processed_image', express.static(path.join(__dirname, '..', 'flask_ser
 
 const sshConfig = {
   host: 'host',
-  port: 22,
+  port: 6000,
   username: 'username',
   password: 'password' 
 };
@@ -48,7 +48,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 100 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'video/webm', 'video/mov'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'video/webm', 'video/mov', 'video/mp4'];
     if (!allowedTypes.includes(file.mimetype)) {
       return cb(new Error('Invalid file type'), false);
     }
@@ -66,7 +66,7 @@ app.post('/api/upload', upload.single('media'), async (req, res) => {
     const form = new FormData();
     form.append('media', fs.createReadStream(req.file.path), path.basename(req.file.path));
     
-    const response = await axios.post('http://link-to-your-ssh-server/process-media', form, {
+    const response = await axios.post('http://link-to-ssh-server/process-media', form, {
       headers: {
         ...form.getHeaders(),
         'Content-Type': 'multipart/form-data'
@@ -88,7 +88,6 @@ app.get('/image', async (req, res) => {
   const { filename } = req.query;
 
   const localPath = path.join(__dirname, '..', 'src', 'components', 'media', `${filename}.png`);
-  
   try {
     console.log('Received request for image');
     
@@ -136,11 +135,11 @@ app.get('/image', async (req, res) => {
 //sends prompt to vllm server
 app.post('/send-prompt', async (req, res) => {
   try {
-    const result = await axios.post('http://link-to-your-ssh-server/send-prompt');
+    const result = await axios.post('http://link-to-ssh-server/send-prompt');
     res.json(result.data);
   } catch (error) {
-      console.error('Error sending to LLM server:', error);
-      res.status(500).send('Error communicating with LLM server');
+      console.error('Error sending to vLLM server:', error);
+      res.status(500).send('Error communicating with vLLM server');
   }
 });  
 

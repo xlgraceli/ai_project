@@ -1,7 +1,7 @@
 import requests
 import json
 
-current_server_url = "https://4099-133-1-70-5.ngrok-free.app/v1/engines/Phi-3-mini-4k-instruct/completions"
+current_server_url = "https://server-url/v1/engines/Phi-3-mini-4k-instruct/completions"
 destination_server_url = "https://destination-server.com/endpoint"
 
 payload = {
